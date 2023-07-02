@@ -1,11 +1,13 @@
+const fs = require('fs');
+const zlib = require('zlib');
 const fsp = require('fs/promises');
 const slugify = require('slugify');
 const makerjs = require('makerjs');
 const { optimize } = require('svgo');
-const { gzip } = require('node-gzip');
 const opentype = require('opentype.js');
 
-const googleFontsApiKey = '';
+
+const googleFontsApiKey = 'AIzaSyAFeXd5l1uMGJAwWaK_d8d8vuGSyXtzQ38';
 const googleWebFontsEndpoint = `https://www.googleapis.com/webfonts/v1/webfonts?key=${googleFontsApiKey}`;
 
 const fontSize = 18;
@@ -19,10 +21,20 @@ const strokeWidth = '0.25mm';
 const fillRule = 'evenodd';
 const scalingStroke = true;
 
+function insertString(originalString, position, stringToInsert) {
+  let substringBefore = originalString.substring(0, position);
+  let substringAfter = originalString.substring(position);
+  let modifiedString = substringBefore + stringToInsert + substringAfter;
+  return modifiedString;
+}
+
 const main = async () => {
   const googleRes = await fetch(googleWebFontsEndpoint);
   const list = await googleRes.json();
-  const objMap = {};
+  const gzip = zlib.createGzip();
+  const families = [];
+
+  gzip.pipe(fs.createWriteStream('./demo/public/font-previews.html.gz'));
 
   for (const item of list.items) {
     if (item.files.regular) {
@@ -46,22 +58,25 @@ const main = async () => {
         stroke,
         strokeWidth,
         fillRule,
-        scalingStroke
+        scalingStroke,
       });
+
       const result = optimize(svg, {
         multipass: true,
+        cleanupIds: false,
       });
-      objMap[item.family] = result.data;
-      const compressed = await gzip(result.data);
 
-      await fsp.writeFile(`./out/${slugify(item.family)}.svg.gz`, compressed);
-      await fsp.writeFile('./demo/src/map.json', JSON.stringify(objMap));
+      gzip.write(insertString(result.data, 5, `id="${slugify(item.family)}" `));
+      families.push(item.family);
+
       console.log(`wrote ${item.family}`);
     } else {
       console.info(`skipping ${item.family}, no regular file`);
     }
-
   }
+
+  gzip.end();
+  await fsp.writeFile('./demo/src/preview-families.json', JSON.stringify(families));
 };
 
 main().catch((error) => {

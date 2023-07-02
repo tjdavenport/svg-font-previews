@@ -1,47 +1,66 @@
-import fontMap from './map.json';
-import { useEffect, useRef } from 'react';
+import slugify from 'slugify';
+import { FixedSizeList as List } from 'react-window';
+import SVG, { cacheStore } from 'react-inlinesvg';
+import previewFamilies from "./preview-families.json";
+import { useEffect, useRef, useState, useMemo } from 'react';
 
-const fontEntries = Object.entries(fontMap);
+const loadFontPreviews = () => {
+  return fetch('/font-previews.html.gz')
+  .then(res => {
+    const deflate = new window.DecompressionStream('gzip');
+    return res.body.pipeThrough(deflate);
+  })
+  .then(stream => {
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/html'
+      }
+    }).text();
+  }).then(html => {
+    return html.split('</svg>');
+  });
+};
 
-const FontPreview = ({ family, svg }) => {
-  const container = useRef();
+const useFontPreviews = () => {
+  const [previews, setPreviews] = useState();
 
   useEffect(() => {
-    if (container.current) {
-      try {
-        container.current.innerHTML = svg;
-      } catch (error) {
-        debugger;
-      }
-    }
+    loadFontPreviews().then(node => {
+      setPreviews(node);
+    });
+  }, []);
+
+  return previews;
+};
+
+const Fonts = ({ previews }) => {
+  const Row = useMemo(() => {
+    return ({ index, style }) => {
+      return (
+        <div style={style}><SVG src={previews[index]}/></div>
+      );
+    };
   }, []);
 
   return (
-    <div ref={container}></div>
+    <List
+      height={150}
+      itemCount={1541}
+      itemSize={40}
+      width={300}
+      overscanCount={10}
+    >
+      {Row}
+    </List>
   );
-}
+};
 
 function App() {
+  const previews = useFontPreviews();
+
   return (
     <div className="App">
-      <table style={{width: '100vw'}}>
-        <thead>
-          <tr>
-            <th>Font Family</th>
-            <th>Preview</th>
-          </tr>
-        </thead>
-        <tbody>
-          {fontEntries.map(([family, svg]) => {
-            return (
-              <tr>
-                <td>{family}</td>
-                <td><FontPreview family={family} svg={svg}/></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {previews && <Fonts previews={previews}/>}
     </div>
   );
 }

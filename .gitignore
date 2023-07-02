@@ -10,7 +10,8 @@ lerna-debug.log*
 
 demo/build
 demo/node_modules
-demo/src/map.json
+demo/public/font-previews.html.gz
+demo/src/preview-families.json
 
 out/*.svg.gz
 
