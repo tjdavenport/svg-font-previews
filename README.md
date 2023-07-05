@@ -2,7 +2,7 @@
 A pipeline for generating SVG font previews for large amounts of font families.
 
 ## Quickstart
-This will generate optimized, gzipped SVG previews for all Google Web Fonts that have a `regular` variant into `./demo/public/font-previews.html.gz`. At time of writing, the output comes in at under `8MB`
+This will generate optimized, gzipped SVG previews for all Google Web Fonts that have a `regular` variant into `./demo/public/font-previews.html.gz`. At time of writing, the output comes in at under `8MB` when rendering 1500+ Google Web Fonts.
 
 - `npm i`
 - Add a Google Web Fonts API key to `./index.js`
